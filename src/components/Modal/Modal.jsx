@@ -3,10 +3,27 @@ import { Overlay, ImageContainer, Image } from './Modal.styled'
 
 export class Modal extends Component {
   
-  closeModal = () => {
-    this.props.handleModal()
+  closeModal = (e) => {
+    if (e.target === e.currentTarget) {
+      this.props.handleModal()
+    }
+  }
+
+  handleKeyPress = (e) => {
+    if (e.code === "Escape") {
+      this.props.handleModal()
+    }
   }
   
+  componentDidMount = () => {
+    window.addEventListener("keydown", this.handleKeyPress)
+  }
+
+  componentWillUnmount = () => {
+    window.removeEventListener("keydown", this.handleKeyPress)
+  }
+
+
   render() {
     const url = this.props.imageData.largeImageURL
     
