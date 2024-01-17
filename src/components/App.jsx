@@ -29,7 +29,6 @@ export class App extends Component {
     this.setState(() => {
       return {
         keyword,
-        isLoading: true,
         page: 1,
         images: [],
       }
@@ -37,10 +36,13 @@ export class App extends Component {
   }  
 
   componentDidUpdate = async (prevProps, prevState) => {
-    if (prevState.keyword !== this.state.keyword || prevState.page !== this.state.page) {
+    const { page, keyword } = this.state
+
+    if (prevState.keyword !== keyword || prevState.page !== page) {
       try {
-      const searchedData = await fetchImages(this.state.keyword, this.state.page);
-      console.log(searchedData);
+      this.setState({ isLoading: true, error: '' })
+      const searchedData = await fetchImages(keyword, page);
+
       const searchedImages = searchedData.data.hits.map(image => {
         return { id: image.id, largeImageURL: image.largeImageURL, webformatURL: image.webformatURL, tags: image.tags}
       })
@@ -48,27 +50,27 @@ export class App extends Component {
       this.setState((prevState) => {
         return {
           isLoading: false,
-          canLoad: this.state.page < Math.ceil(searchedData.data.totalHits / 12),
+          canLoad: page < Math.ceil(searchedData.data.totalHits / 12),
           images: [...prevState.images, ...searchedImages],
         }
       })
     } catch (error) {
-      this.setState({ error: error.message })
+        this.setState({ error: error.message })
+      } finally {
+        this.setState({ isLoading: false })
     }}
   }
 
   handleLoadMore = () => {
-    this.setState((prevState) => { 
-      return {
-        page: prevState.page + 1
-      }
-    })
+    this.setState((prevState) => ({ page: prevState.page + 1 }))
   }
 
-  handleModal = () => {
-    this.setState((prevState) => {
-      return {isImageChosen: !prevState.isImageChosen}
-    })
+  openModal = (imageData) => {
+    this.setState({ isImageChosen: true, imageData })
+  }
+
+  closeModal = () => {
+    this.setState({ isImageChosen: false, imageData: {} })
   }
 
   handleChooseImage = (imageData) => {
@@ -78,14 +80,17 @@ export class App extends Component {
   }
   
   render() {
+
+    const { images, isLoading, error, imageData, isImageChosen, canLoad } = this.state
     return (
       <div className={css.appcontainer}>
         <Searchbar handleSearch={this.handleSearch} />
-        {this.state.isLoading ? <Loader /> : <ImageGallery galleryData={this.state.images} handleChooseImage={this.handleChooseImage} handleModal={this.handleModal} />}
-        {this.state.error && <ErrorMessage error={this.state.error}/>}
+        {images.length > 0 && <ImageGallery galleryData={images} openModal={this.openModal} />}
+        {isLoading && <Loader />}
+        {error && <ErrorMessage error={error}/>}
 
-        {this.state.canLoad && <Button handleLoadMore={this.handleLoadMore} />}
-        {this.state.isImageChosen && <Modal imageData={this.state.imageData} handleModal={this.handleModal} />}
+        {canLoad && <Button handleLoadMore={this.handleLoadMore} />}
+        {isImageChosen && <Modal imageData={imageData} closeModal={this.closeModal} />}
       </div>
     );
   }

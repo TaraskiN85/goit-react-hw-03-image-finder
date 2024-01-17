@@ -1,12 +1,11 @@
 import React from 'react'
 import { Img, StyledItem } from './ImageGalleryItem.styled'
 
-export const ImageGalleryItem = ({ galleryItemData, handleChooseImage, handleModal }) => {
+export const ImageGalleryItem = ({ galleryItemData, openModal }) => {
   const { tags, webformatURL } = galleryItemData;
 
   const chooseImage = () => {
-    handleChooseImage(galleryItemData)
-    handleModal()
+    openModal(galleryItemData)
   }
   
   return (
