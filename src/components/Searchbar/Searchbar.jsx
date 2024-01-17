@@ -1,14 +1,16 @@
 import React from 'react'
 import { Form, Input, Container, Button, Icon } from './Searchbar.styled'
 
-export const Searchbar = ({handleSearch, resetState}) => {
+export const Searchbar = ({handleSearch}) => {
   
   const handleSubmit = (e) => {
     e.preventDefault()
-    const keyword = e.currentTarget.elements.imgSearch.value
-    resetState()
-    handleSearch(keyword)
-    e.currentTarget.reset()
+    const keyword = e.currentTarget.elements.imgSearch.value.trim()
+    if (keyword.length > 0) {
+      handleSearch(keyword)
+      e.currentTarget.reset()
+      return
+    }
   }
 
   return (

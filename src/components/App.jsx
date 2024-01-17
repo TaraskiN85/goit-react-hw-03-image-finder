@@ -1,11 +1,15 @@
 import { Component } from 'react';
-import css from './App.module.css'
+
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Searchbar } from './Searchbar/Searchbar';
-import axios from 'axios';
 import { Button } from './Button/Button';
 import { Modal } from './Modal/Modal';
 import { Loader } from './Loader/Loader';
+import { ErrorMessage } from './Error/Error'
+
+import { fetchImages } from './services/api';
+
+import css from './App.module.css'
 
 export class App extends Component {
 
@@ -15,47 +19,43 @@ export class App extends Component {
     keyword: '',
     isLoading: false,
     canLoad: false,
+    error: '',
     isImageChosen: false,
     imageData: {},
   }
 
-  
   handleSearch = async (keyword) => {
-    const API_KEY = '40561275-509fd25e8eff038878750ce8a';
 
     this.setState(() => {
       return {
         keyword,
         isLoading: true,
+        page: 1,
+        images: [],
       }
     })
-    
-    const searchedData = await axios.get(`https://pixabay.com/api/?q=${keyword}&page=1&key=${API_KEY}&image_type=photo&orientation=horizontal&per_page=12&page=${this.state.page}`)
+  }  
 
-    this.setState(() => {
-      return {
-        isLoading: false,
-      }
-    })
+  componentDidUpdate = async (prevProps, prevState) => {
+    if (prevState.keyword !== this.state.keyword || prevState.page !== this.state.page) {
+      try {
+      const searchedData = await fetchImages(this.state.keyword, this.state.page);
+      console.log(searchedData);
+      const searchedImages = searchedData.data.hits.map(image => {
+        return { id: image.id, largeImageURL: image.largeImageURL, webformatURL: image.webformatURL, tags: image.tags}
+      })
 
-    const searchedImages = searchedData.data.hits.map(image => {
-      return { id: image.id, largeImageURL: image.largeImageURL, webformatURL: image.webformatURL, tags: image.tags}
-    })
-
-    this.setState(() => {
-      return {
-        canLoad: this.state.page < Math.ceil(searchedData.data.totalHits / 12)
-      }
-    })
-
-    this.setState(() => {
-      return {
-        images: searchedImages
-      }
-    })
+      this.setState((prevState) => {
+        return {
+          isLoading: false,
+          canLoad: this.state.page < Math.ceil(searchedData.data.totalHits / 12),
+          images: [...prevState.images, ...searchedImages],
+        }
+      })
+    } catch (error) {
+      this.setState({ error: error.message })
+    }}
   }
-
-  resetState = () => this.setState({ page: 1 })
 
   handleLoadMore = () => {
     this.setState((prevState) => { 
@@ -63,7 +63,6 @@ export class App extends Component {
         page: prevState.page + 1
       }
     })
-    this.handleSearch(this.state.keyword)
   }
 
   handleModal = () => {
@@ -79,11 +78,11 @@ export class App extends Component {
   }
   
   render() {
-
     return (
       <div className={css.appcontainer}>
-        <Searchbar handleSearch={this.handleSearch} resetState={this.resetState}/>
-        {this.state.isLoading ? <Loader/> : <ImageGallery galleryData={this.state.images} handleChooseImage={this.handleChooseImage} handleModal={this.handleModal} />}
+        <Searchbar handleSearch={this.handleSearch} />
+        {this.state.isLoading ? <Loader /> : <ImageGallery galleryData={this.state.images} handleChooseImage={this.handleChooseImage} handleModal={this.handleModal} />}
+        {this.state.error && <ErrorMessage error={this.state.error}/>}
 
         {this.state.canLoad && <Button handleLoadMore={this.handleLoadMore} />}
         {this.state.isImageChosen && <Modal imageData={this.state.imageData} handleModal={this.handleModal} />}
